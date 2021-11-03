@@ -1,0 +1,128 @@
+---
+title: "lab_10.Rmd"
+author: "derek willis"
+date: "11/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## You will need
+
+* A Datawrapper account
+* PPP data that is in a CSV file in the `data` folder
+* Other data in CSV files in the `data` folder
+
+## You might need
+
+* A Census API key
+
+## Load libraries and establish settings
+
+**Task** Create a codeblock and load appropriate packages and settings for this lab.
+
+## Questions
+
+**Q1.** You got a tip that there are some unusual patterns among applicants listing barber shops as their occupation. Which state has the most PPP applications from barber shops, and how many of those have undisbursed amounts greater than $0? Which state has the most undisbursed applications?
+
+You MUST do the following things when answering this question:
+* Use the PPP loan data, which is in the data folder and is called `barber_shops_ppp.csv`.
+* Using the barber shop PPP applications, write code that generates two dataframes:
+  * one with a total number of applications per state
+  * one with a total number of applications per state where the undisbursed amount is more than 0.
+* Join those dataframes, specifying the join column, and rename the totals columns so that they better describe the values in them.
+* Export the top 10 states to a CSV file using `write_csv`
+* Using the top 10 states, make a bar chart with Datawrapper. What kind of bar chart is up to you, so experiment with a few kinds of bar charts to see what answers the question above in the clearest way. Your chart MUST:
+  * Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
+  * Easily readable labels and values
+  * Enough spacing so that the bars are visually distinct
+  * Use color for contrast and make it clear what each color represents
+* Publish your chart (you may need to confirm your Datawrapper account if you haven't already in order to do this)
+* Put the answer below along with the URL of your chart.
+
+**A1.** Which state has the most PPP applications from barber shops, and how many of those have undisbursed amounts greater than $0? Illinois, 
+11,080 applications and 1713 of those have undisbursed amounts greater than $0. 
+Which state has the most undisbursed applications? Illinois.
+Datawrapper chart https://datawrapper.dwcdn.net/1jZ3j/3/
+
+```{r}
+library(tidyverse)
+#load PPP loan data
+barber_ppp <- read_csv("data/barber_shops_ppp.csv")
+
+#total number of applications per state
+barber_state<-barber_ppp%>%
+  group_by(state) %>%
+  summarise(application_count=n())%>%
+  arrange(desc(application_count))
+
+#total number of applications per state where the undisbursed amount is more than 0
+barber_undisbursed<-barber_ppp%>%
+  group_by(state) %>%
+  filter(undisbursed_amount>0)%>%
+  summarise(undisbursed_count=n())%>%
+  arrange(desc(undisbursed_count))
+
+#Join those dataframes, specifying the join column, and rename the totals columns so that they better describe the values in them.
+barber_state_undisbursed <- barber_state %>%
+  left_join(barber_undisbursed)%>%
+  slice(1:10)
+
+#Export the top 10 states to a CSV file using `write_csv`
+write_csv(barber_state_undisbursed, "data/barber_state_undisbursed.csv")
+
+```
+
+**Q2.** Using Datawrapper, make a different (ideally better) version of the chart you made above. To do so, you MUST go back in R and do any calculations or add additional data to make the chart more effective or answer the above question in a different way. Your chart MUST be different in that it cannot be a bar chart showing the counts of total and undisbursed applications by state. It could be a bar chart showing another calculation or metric, or a scatterplot, or some other form. Follow the same general guidelines as above for the chart's visual elements, and publish it and including the URL below, along with an explanation of how this chart is different from the first one and how you decided what to do.
+
+**A2.** https://datawrapper.dwcdn.net/wrbbw/1/ This chart is a dot plot, and I calculated the percentage of undisbursed loans by dividing undisbursed_count to application_count. 
+```{r}
+percentage_barber_state_undisbursed<-barber_state_undisbursed%>%
+  mutate(undisbursed_percent= ((undisbursed_count/application_count*100)))%>%
+  select(-undisbursed_count, -application_count)
+  
+write_csv(percentage_barber_state_undisbursed, "data/percentage_barber_state_undisbursed.csv")
+```
+
+**Q3.** The online lender Kabbage, Inc. is featured in the [ProPublica PPP fake farms story](https://www.propublica.org/article/ppp-farms). To show where Kabbage was lending money, make a county-level map that shows the percentage of loans in each county that were Kabbage loans. To do this, make a codeblock and do the following:
+
+1. Load the `kabbage_counties.csv` and `all_counties.csv` files in the data folder.
+2. Join the two together, specifying the join columns, and rename the total columns to represent Kabbage loans and total loans. Save the output to a new dataframe.
+3. Calculate the percentage of loans in each county that were Kabbage loans and save the output to the existing dataframe.
+4. Load the `county_fips.csv` file in the data folder into a dataframe.
+5. Join the combined counties data with the fips data, again specifying the join columns and saving it to a new dataframe.
+6. Export the new dataframe to a CSV file.
+7. Make a county-level map using that exported CSV file that displays the percentage of Kabbage loans. Style it so that the tooltip displays the county and the percentage, and format all percentages shown on the map so that they appear with one decimal point (such as 3.4%). Follow the same general guidelines as above for the chart's visual elements, and give the map a title, description and source. Provide a legend caption and format the percentage in the same way as on the tooltips.
+8. In the answer space below, provide the URL for your published map and then describe where Kabbage loans are and are not found. Where are they more common? Look specifically at Florida in the data: are there counties on the map where no data is displayed? Why?
+
+**A3.**  URL to chart: https://datawrapper.dwcdn.net/NnwY0/1/
+The Kabbage laons are mostly found on the East side, athe middle, nd the North-West of the US. There are lot of loans in Florida. But there are some conuties that don't have to data to be displayed. I think it is becuase it is not in the dataset. 
+```{r}
+#Load the `kabbage_counties.csv` and `all_counties.csv` files in the data folder.
+kabbage_counties <- read_csv("data/kabbage_counties.csv")
+all_counties <- read_csv("data/all_counties.csv")
+
+#Join the two together, specifying the join columns, and rename the total columns to represent Kabbage loans and total loans. Save the output to a new dataframe.
+kabbage_join_counties <- kabbage_counties %>%
+  inner_join(all_counties, by=c("project_county_name", "project_state"))%>%
+  rename(Kabbage_loan=total.x, total_loan= total.y)
+
+#Calculate the percentage of loans in each county that were Kabbage loans and save the output to the existing dataframe.
+percentage_kabbage_join_counties<-kabbage_join_counties%>%
+  mutate(kabbage_percent= ((Kabbage_loan/total_loan*100)))
+  
+#Load the `county_fips.csv` file in the data folder into a dataframe.
+county_fips <- read_csv("data/county_fips.csv")
+
+#Join the combined counties data with the fips data, again specifying the join columns and saving it to a new dataframe.
+percentage_kabbage_county_fips<-percentage_kabbage_join_counties%>%
+  inner_join(county_fips, by=c('project_state'='state', 'project_county_name'='match_county'))
+
+percentage_kabbage_county_fips%>%
+  filter(state_name=="Florida")
+
+#Export the new dataframe to a CSV file.
+write_csv(percentage_kabbage_county_fips, "data/percentage_kabbage_county_fips.csv")
+```
